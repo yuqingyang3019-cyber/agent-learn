@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>从被动响应到自进化：Agent 技术范式的演化</title>
+  <style>
+    :root {
+      --bg: #020617;
+      --bg-2: #0f172a;
+      --panel: rgba(15, 23, 42, 0.7);
+      --panel-strong: rgba(30, 41, 59, 0.78);
+      --text: #f8fafc;
+      --muted: #b9c8dc;
+      --accent: #22c55e;
+      --accent-2: #38bdf8;
+      --accent-3: #facc15;
+      --green: #86efac;
+      --red: #fb7185;
+      --grid: rgba(148, 163, 184, 0.1);
+      --shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+      --radius: 28px;
+      font-family: "Exo", "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 17% 18%, rgba(34, 197, 94, 0.2), transparent 28%),
+        radial-gradient(circle at 82% 22%, rgba(56, 189, 248, 0.18), transparent 32%),
+        radial-gradient(circle at 50% 100%, rgba(250, 204, 21, 0.08), transparent 38%),
+        linear-gradient(135deg, var(--bg), var(--bg-2));
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(circle at 50% 50%, black, transparent 78%);
+      animation: gridDrift 18s linear infinite;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(120deg, transparent 0 42%, rgba(34, 197, 94, 0.08) 48%, transparent 54% 100%);
+      transform: translateX(-35%);
+      animation: scan 7s ease-in-out infinite;
+    }
+
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      gap: 28px;
+      padding: 72px 86px 76px;
+      opacity: 0;
+      transform: translateX(36px) scale(0.98);
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 420ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1), visibility 420ms;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .slide.exit-left {
+      transform: translateX(-36px) scale(0.98);
+    }
+
+    .kicker {
+      width: fit-content;
+      padding: 8px 14px;
+      border: 1px solid rgba(34, 197, 94, 0.38);
+      border-radius: 999px;
+      color: var(--accent);
+      background: rgba(34, 197, 94, 0.1);
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      box-shadow: 0 0 30px rgba(34, 197, 94, 0.13);
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 1050px;
+      font-size: clamp(56px, 7vw, 106px);
+      line-height: 0.96;
+      letter-spacing: -0.06em;
+      text-wrap: balance;
+      background: linear-gradient(92deg, #ffffff 0%, #dffcec 45%, #7dd3fc 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 18px 60px rgba(56, 189, 248, 0.16);
+    }
+
+    h2 {
+      max-width: 1060px;
+      font-size: clamp(44px, 5vw, 74px);
+      line-height: 1.05;
+      letter-spacing: -0.045em;
+      text-wrap: balance;
+    }
+
+    h3 {
+      font-size: 30px;
+      letter-spacing: -0.02em;
+    }
+
+    p, li {
+      color: var(--muted);
+      font-size: 24px;
+      line-height: 1.6;
+    }
+
+    strong {
+      color: var(--text);
+    }
+
+    .accent {
+      color: var(--accent);
+    }
+
+    .warm {
+      color: var(--accent-3);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      align-items: center;
+      gap: 48px;
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 26px;
+    }
+
+    .subtitle {
+      max-width: 880px;
+      font-size: 29px;
+      color: #d7e4f7;
+    }
+
+    .panel {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .big-card {
+      padding: 34px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .cards.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cards.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      min-height: 220px;
+      padding: 28px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(30, 41, 59, 0.72), rgba(15, 23, 42, 0.55));
+      box-shadow: 0 18px 54px rgba(0, 0, 0, 0.24);
+      transform: translateY(10px);
+      transition: transform 240ms ease, border-color 240ms ease, background 240ms ease;
+    }
+
+    .active .card {
+      animation: cardIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .active .card:nth-child(2) {
+      animation-delay: 90ms;
+    }
+
+    .active .card:nth-child(3) {
+      animation-delay: 180ms;
+    }
+
+    .active .card:nth-child(4) {
+      animation-delay: 270ms;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(34, 197, 94, 0.42);
+      background:
+        linear-gradient(180deg, rgba(30, 41, 59, 0.86), rgba(15, 23, 42, 0.68));
+    }
+
+    .card h3 {
+      margin-bottom: 14px;
+    }
+
+    .card p, .card li {
+      font-size: 21px;
+      line-height: 1.45;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      margin-bottom: 16px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      color: #101827;
+      background: var(--accent);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .tag.purple {
+      background: #7dd3fc;
+    }
+
+    .tag.yellow {
+      background: var(--accent-3);
+    }
+
+    .tag.green {
+      background: var(--green);
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      position: relative;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 4%;
+      right: 4%;
+      top: 46px;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--green), var(--accent-3));
+      opacity: 0.75;
+    }
+
+    .stage {
+      position: relative;
+      padding: 76px 24px 24px;
+      min-height: 340px;
+    }
+
+    .dot {
+      position: absolute;
+      top: 28px;
+      left: 28px;
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 7px solid rgba(8, 17, 31, 0.92);
+      box-shadow: 0 0 0 6px rgba(101, 228, 255, 0.14);
+    }
+
+    .stage:nth-child(2) .dot { background: var(--accent-2); box-shadow: 0 0 0 6px rgba(155, 123, 255, 0.16); }
+    .stage:nth-child(3) .dot { background: var(--green); box-shadow: 0 0 0 6px rgba(108, 245, 177, 0.14); }
+    .stage:nth-child(4) .dot { background: var(--accent-3); box-shadow: 0 0 0 6px rgba(255, 204, 102, 0.16); }
+
+    .stage .year {
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    .stage h3 {
+      margin: 8px 0 12px;
+      font-size: 28px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      align-items: center;
+      gap: 34px;
+    }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      min-height: 245px;
+      padding: 26px;
+    }
+
+    .pill {
+      padding: 16px 20px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-size: 22px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .arrow {
+      color: var(--accent);
+      font-size: 34px;
+      animation: nudge 1.5s ease-in-out infinite;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .before {
+      border-color: rgba(255, 125, 139, 0.34);
+    }
+
+    .after {
+      border-color: rgba(108, 245, 177, 0.34);
+    }
+
+    .label {
+      display: inline-block;
+      margin-bottom: 16px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
+
+    .before .label {
+      color: var(--red);
+    }
+
+    .after .label {
+      color: var(--green);
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .mini-list li {
+      padding-left: 28px;
+      position: relative;
+    }
+
+    .mini-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 15px;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .matrix .card {
+      min-height: 190px;
+    }
+
+    .big-number {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 54px;
+      line-height: 1;
+      font-weight: 950;
+      color: var(--accent);
+    }
+
+    .gif-slot {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 320px;
+      padding: 30px;
+      overflow: hidden;
+      border: 1px solid rgba(56, 189, 248, 0.36);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(circle at 50% 30%, rgba(34, 197, 94, 0.2), transparent 34%),
+        radial-gradient(circle at 70% 70%, rgba(56, 189, 248, 0.18), transparent 36%),
+        rgba(15, 23, 42, 0.58);
+      box-shadow: inset 0 0 70px rgba(56, 189, 248, 0.08), 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .gif-slot::before {
+      content: "";
+      width: 160px;
+      height: 160px;
+      border-radius: 42px;
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.34), rgba(56, 189, 248, 0.22));
+      animation: float 4.2s ease-in-out infinite;
+    }
+
+    .gif-slot::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 50%;
+      box-shadow: 0 0 0 34px rgba(56, 189, 248, 0.035), 0 0 0 78px rgba(34, 197, 94, 0.025);
+      animation: pulse 3.8s ease-in-out infinite;
+    }
+
+    .gif-slot .hint {
+      position: absolute;
+      left: 28px;
+      right: 28px;
+      bottom: 24px;
+      color: #e7f7ff;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 760;
+      z-index: 1;
+    }
+
+    .speaker-note {
+      display: inline-block;
+      width: fit-content;
+      max-width: 1000px;
+      padding: 12px 16px;
+      border-left: 4px solid var(--accent-3);
+      border-radius: 14px;
+      color: #ffe9b2;
+      background: rgba(255, 204, 102, 0.1);
+      font-size: 19px;
+      line-height: 1.5;
+    }
+
+    .quote {
+      max-width: 1120px;
+      padding: 38px 42px;
+      color: #f4fbff;
+      font-size: 42px;
+      line-height: 1.35;
+      letter-spacing: -0.03em;
+    }
+
+    .quote small {
+      display: block;
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .controls {
+      position: fixed;
+      left: 28px;
+      right: 28px;
+      bottom: 24px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      padding: 11px 16px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.09);
+      backdrop-filter: blur(12px);
+      cursor: pointer;
+      font-size: 15px;
+      transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+    }
+
+    button:hover {
+      border-color: rgba(34, 197, 94, 0.62);
+      background: rgba(34, 197, 94, 0.16);
+      transform: translateY(-1px);
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(34, 197, 94, 0.5);
+      outline-offset: 3px;
+    }
+
+    .progress {
+      width: min(38vw, 520px);
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      pointer-events: auto;
+    }
+
+    .bar {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+      box-shadow: 0 0 22px rgba(34, 197, 94, 0.28);
+      transition: width 260ms ease;
+    }
+
+    .count {
+      min-width: 76px;
+      color: var(--muted);
+      font-size: 16px;
+      text-align: right;
+      pointer-events: auto;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .badge {
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      color: #dce9fb;
+      background: rgba(255, 255, 255, 0.07);
+      font-size: 18px;
+      font-weight: 730;
+    }
+
+    .orbit {
+      position: relative;
+      min-height: 460px;
+    }
+
+    .core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      display: grid;
+      place-items: center;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle, rgba(101, 228, 255, 0.35), rgba(155, 123, 255, 0.18));
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 38px;
+      font-weight: 950;
+      box-shadow: 0 0 80px rgba(101, 228, 255, 0.24);
+    }
+
+    .orbit-item {
+      position: absolute;
+      width: 190px;
+      padding: 18px;
+      border-radius: 22px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 850;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      animation: pulse 3.6s ease-in-out infinite;
+    }
+
+    .orbit-item:nth-child(2) { left: 5%; top: 8%; animation-delay: 0s; }
+    .orbit-item:nth-child(3) { left: 41%; top: 0%; animation-delay: 0.4s; }
+    .orbit-item:nth-child(4) { right: 5%; top: 8%; animation-delay: 0.8s; }
+    .orbit-item:nth-child(5) { left: 8%; bottom: 10%; animation-delay: 1.2s; }
+    .orbit-item:nth-child(6) { left: 41%; bottom: 0%; animation-delay: 1.6s; }
+    .orbit-item:nth-child(7) { right: 8%; bottom: 10%; animation-delay: 2s; }
+
+    .decision {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .decision .card {
+      min-height: 300px;
+    }
+
+    .footer-tip {
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-18px) rotate(8deg); }
+    }
+
+    @keyframes gridDrift {
+      from { background-position: 0 0, 0 0; }
+      to { background-position: 44px 44px, 44px 44px; }
+    }
+
+    @keyframes scan {
+      0%, 100% { transform: translateX(-45%); opacity: 0; }
+      45%, 55% { opacity: 1; }
+      100% { transform: translateX(45%); opacity: 0; }
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(22px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes nudge {
+      0%, 100% { transform: translateX(0); opacity: 0.55; }
+      50% { transform: translateX(6px); opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .deck {
+        height: auto;
+      }
+
+      .slide {
+        position: relative;
+        min-height: 100vh;
+        display: none;
+        padding: 58px 24px 96px;
+      }
+
+      .slide.active {
+        display: grid;
+      }
+
+      .hero, .split, .cards, .cards.two, .cards.four, .timeline, .comparison, .matrix, .decision {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline::before {
+        display: none;
+      }
+
+      .controls {
+        left: 14px;
+        right: 14px;
+      }
+
+      .progress {
+        width: 32vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-live="polite">
+    <section class="slide active">
+      <div class="hero">
+        <div class="hero-copy">
+          <div class="kicker">Agent 技术演化 · 2023-2026</div>
+          <h1>从被动响应<br />到自进化</h1>
+          <p class="subtitle">用一套低门槛的故事线，看懂 Agent 为什么从“会聊天”走向“会做事、会成长”。</p>
+          <div class="badge-row">
+            <span class="badge">四个阶段</span>
+            <span class="badge">六个核心概念</span>
+            <span class="badge">选型思路</span>
+          </div>
+          <p class="footer-tip">操作：方向键 / 空格翻页，F 全屏。</p>
+        </div>
+        <div class="gif-slot">
+          <div class="hint">动图预留 5 秒：机器人从聊天气泡走向工具箱，再变成数字员工</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">开场问题</div>
+      <h2>为什么大家越学 Agent，反而越容易迷糊？</h2>
+      <div class="cards three">
+        <div class="card">
+          <span class="tag">01</span>
+          <h3>新产品太快</h3>
+          <p>Claude Code、Codex、OpenClaw、Hermes 等不断出现，能力边界持续刷新。</p>
+        </div>
+        <div class="card">
+          <span class="tag purple">02</span>
+          <h3>旧概念还在流传</h3>
+          <p>很多文章仍停留在早期 ReAct、Function Call、单体 Prompt 的时代。</p>
+        </div>
+        <div class="card">
+          <span class="tag yellow">03</span>
+          <h3>新旧范式混在一起</h3>
+          <p>看起来都叫 Agent，但工程实现、稳定性策略和适用场景已经很不一样。</p>
+        </div>
+      </div>
+      <div class="speaker-note">讲法：先共情听众，“不是你学不会，是这个领域真的换挡太快”。</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">这次分享的目标</div>
+      <h2>不是追热点，而是看懂变化背后的逻辑</h2>
+      <div class="quote panel">
+        Agent 的关键变化不是“又多了一个框架”，而是从魔法调参走向系统工程。
+        <small>理解演化逻辑，比记住某个工具名更重要。</small>
+      </div>
+      <div class="cards two">
+        <div class="card">
+          <h3>看清四个阶段</h3>
+          <p>从被动响应，到结构化工作流，再到自主执行，最后走向自进化。</p>
+        </div>
+        <div class="card">
+          <h3>拆开六个模块</h3>
+          <p>Prompt、Planning、Memory、Tools、Workflow、Environment 分别发生了什么变化。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">总览</div>
+      <h2>Agent 发展的四个阶段</h2>
+      <div class="timeline">
+        <div class="stage card">
+          <span class="dot"></span>
+          <div class="year">2023</div>
+          <h3>早期 Agent</h3>
+          <p>被动式 ReAct，一问一答，适合短链路任务。</p>
+        </div>
+        <div class="stage card">
+          <span class="dot"></span>
+          <div class="year">2024</div>
+          <h3>工作流 Agent</h3>
+          <p>用流程约束模型，强调结构化、可控性和稳定下限。</p>
+        </div>
+        <div class="stage card">
+          <span class="dot"></span>
+          <div class="year">2025</div>
+          <h3>自主 Agent</h3>
+          <p>能规划、能迭代、能处理更长程的复杂任务。</p>
+        </div>
+        <div class="stage card">
+          <span class="dot"></span>
+          <div class="year">2026</div>
+          <h3>自进化 Agent</h3>
+          <p>沉淀 Skill、Memory 和知识，追求越用越好用。</p>
+        </div>
+      </div>
+      <div class="speaker-note">动图预留 6 秒：时间轴逐个点亮，每个阶段弹出一个代表产品或关键词。</div>
+    </section>
+
+    <section class="slide">
+      <div class="split">
+        <div>
+          <div class="kicker">阶段一</div>
+          <h2>早期 Agent：增强版 Chatbot</h2>
+          <p class="subtitle">核心形态是 ReAct：模型先想一下，再调用工具或回答。它打开了想象力，但还不适合长链路复杂任务。</p>
+        </div>
+        <div class="panel flow">
+          <span class="pill">用户提问</span>
+          <span class="arrow">→</span>
+          <span class="pill">Reasoning</span>
+          <span class="arrow">→</span>
+          <span class="pill">Observe</span>
+          <span class="arrow">→</span>
+          <span class="pill">Response</span>
+        </div>
+      </div>
+      <div class="cards three">
+        <div class="card"><h3>像什么？</h3><p>像一个会查工具的聊天助手。</p></div>
+        <div class="card"><h3>能做什么？</h3><p>单点、短链路、小任务。</p></div>
+        <div class="card"><h3>怕什么？</h3><p>上下文变长、任务变复杂、推理轮次过多。</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="split">
+        <div>
+          <div class="kicker">阶段二</div>
+          <h2>工作流 Agent：先把路修好，再让模型跑</h2>
+          <p class="subtitle">当模型不够稳时，工程上最有效的办法是把关键路径固定下来。</p>
+        </div>
+        <div class="gif-slot">
+          <div class="hint">动图预留 5 秒：模型像小车一样沿固定轨道通过 1、2、3、4 个节点</div>
+        </div>
+      </div>
+      <div class="cards three">
+        <div class="card"><h3>架构特征</h3><p>固定流程 + 关键节点嵌入 LLM，或者 LLM 调用预定义子流程。</p></div>
+        <div class="card"><h3>典型价值</h3><p>牺牲一些灵活性，换来更高的可控性和可解释性。</p></div>
+        <div class="card"><h3>适合场景</h3><p>企业流程、重复性工作、结果稳定性要求高的业务。</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="split">
+        <div>
+          <div class="kicker">阶段三</div>
+          <h2>自主 Agent：从“帮你答”到“帮你做”</h2>
+          <p class="subtitle">以 Manus、Claude Code、Codex 等为代表，Agent 开始具备复杂规划和长程执行能力。</p>
+        </div>
+        <div class="panel flow">
+          <span class="pill">模糊目标</span>
+          <span class="arrow">→</span>
+          <span class="pill">拆任务</span>
+          <span class="arrow">→</span>
+          <span class="pill">调工具</span>
+          <span class="arrow">→</span>
+          <span class="pill">校验迭代</span>
+          <span class="arrow">→</span>
+          <span class="pill">交付结果</span>
+        </div>
+      </div>
+      <div class="cards three">
+        <div class="card"><h3>复杂 Planning</h3><p>能把大目标拆成可执行的 Todo List。</p></div>
+        <div class="card"><h3>长程任务</h3><p>能连续运行较长时间，处理代码库或复杂流程。</p></div>
+        <div class="card"><h3>自我校验</h3><p>执行过程中发现问题、修正错误、再次验证。</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="split">
+        <div>
+          <div class="kicker">阶段四</div>
+          <h2>自进化 Agent：做完任务，还把经验留下来</h2>
+          <p class="subtitle">新一代 Agent 不只是消耗上下文，而是把经验沉淀成 Skill、Memory、知识库，甚至反馈到训练。</p>
+        </div>
+        <div class="gif-slot">
+          <div class="hint">动图预留 6 秒：任务完成后生成 Skill.md、Memory.md、知识卡片，汇入大脑</div>
+        </div>
+      </div>
+      <div class="cards three">
+        <div class="card"><h3>机制</h3><p>通过记忆、反馈循环和反思，把教训转化为策略。</p></div>
+        <div class="card"><h3>目标</h3><p>越用越好用，减少重复指导和重复踩坑。</p></div>
+        <div class="card"><h3>意义</h3><p>Agent 从一次性工具，变成可积累的数字资产。</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">重要提醒</div>
+      <h2>四个阶段不是替代关系，而是工具箱关系</h2>
+      <div class="decision">
+        <div class="card">
+          <span class="big-number">稳</span>
+          <h3>流程清楚</h3>
+          <p>用 Workflow，先保证下限和可解释性。</p>
+        </div>
+        <div class="card">
+          <span class="big-number">活</span>
+          <h3>问题复杂</h3>
+          <p>用自主 Agent，让它规划、搜索、执行、校验。</p>
+        </div>
+        <div class="card">
+          <span class="big-number">长</span>
+          <h3>长期使用</h3>
+          <p>加 Memory 和 Skill，让经验可沉淀、可复用。</p>
+        </div>
+      </div>
+      <div class="speaker-note">这里可以强调：不要为了新架构而新架构，选型要看场景复杂度、稳定性要求和成本。</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">第二部分</div>
+      <h2>六个核心技术概念，发生了哪些变化？</h2>
+      <div class="orbit panel">
+        <div class="core">Agent</div>
+        <div class="orbit-item">Prompt</div>
+        <div class="orbit-item">Planning</div>
+        <div class="orbit-item">Memory</div>
+        <div class="orbit-item">Tools</div>
+        <div class="orbit-item">Workflow</div>
+        <div class="orbit-item">Environment</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Prompt</div>
+      <h2>从深耦合“小作文”，到渐进式加载</h2>
+      <div class="comparison">
+        <div class="card before">
+          <span class="label">早期做法</span>
+          <h3>一个任务，一个大 Prompt</h3>
+          <ul class="mini-list">
+            <li>人设、目标、约束、示例全塞进 System Prompt。</li>
+            <li>场景一多，维护成本迅速上升。</li>
+            <li>Prompt 变成难以管理的“小作文仓库”。</li>
+          </ul>
+        </div>
+        <div class="card after">
+          <span class="label">现在趋势</span>
+          <h3>稳定系统指令 + 外部上下文</h3>
+          <ul class="mini-list">
+            <li>System Prompt 保持稳定、通用、简洁。</li>
+            <li>任务方法沉淀到 SKILL.md。</li>
+            <li>偏好、规范、领域知识放入配置文件，按需读取。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="speaker-note">动图预留 4 秒：一个巨大的 Prompt 被拆成 System、Skill、Memory、Domain Docs 四个模块。</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Planning</div>
+      <h2>从“想一步”，到“规划一段路”</h2>
+      <div class="comparison">
+        <div class="card before">
+          <span class="label">早期</span>
+          <h3>CoT 思维链</h3>
+          <p>依赖类似 “Let's think step by step” 的提示词，让模型线性推理。</p>
+        </div>
+        <div class="card after">
+          <span class="label">现在</span>
+          <h3>复杂长程任务规划</h3>
+          <p>能拆任务、排顺序、动态调整，并在必要时调用子 Agent 协作。</p>
+        </div>
+      </div>
+      <div class="cards three">
+        <div class="card"><h3>结构化分解</h3><p>把宏大目标拆成子任务。</p></div>
+        <div class="card"><h3>多步协同</h3><p>按计划执行，并根据反馈改计划。</p></div>
+        <div class="card"><h3>子 Agent</h3><p>把专项工作交给更合适的执行单元。</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Memory</div>
+      <h2>从检索增强，到文件系统化沉淀</h2>
+      <div class="cards two">
+        <div class="card">
+          <span class="tag">短期记忆</span>
+          <h3>重点从“存储”变成“压缩”</h3>
+          <ul class="mini-list">
+            <li>基于 token 阈值触发压缩。</li>
+            <li>把中间过程总结成结构化摘要。</li>
+            <li>提取关键事实，减少无关噪音。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag green">长期记忆</span>
+          <h3>从纯向量库走向混合管理</h3>
+          <ul class="mini-list">
+            <li>事项型记忆写入 MEMORY.md 或日志。</li>
+            <li>知识型记忆沉淀到 Markdown 知识库。</li>
+            <li>大规模场景再搭配向量检索或 SQLite。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="speaker-note">通俗讲法：短期记忆像“会议纪要”，长期记忆像“团队知识库”。</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Tools</div>
+      <h2>变化最大的地方：从 Function Call 到 CLI / Script</h2>
+      <div class="comparison">
+        <div class="card before">
+          <span class="label">Function Call 时代</span>
+          <h3>人为适配模型</h3>
+          <ul class="mini-list">
+            <li>每个能力都要封装 API。</li>
+            <li>要维护名称、描述、参数、返回结构。</li>
+            <li>工具数量越多，Schema 越重。</li>
+          </ul>
+        </div>
+        <div class="card after">
+          <span class="label">CLI / Script 时代</span>
+          <h3>利用模型原生能力</h3>
+          <ul class="mini-list">
+            <li>模型天然熟悉命令行、代码和技术文档。</li>
+            <li>第三方 CLI 可通过 --help 即时学习。</li>
+            <li>复杂逻辑封装为脚本，Agent 只关心怎么调用。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="speaker-note">动图预留 5 秒：一堆 API Schema 收缩成一个命令行窗口和几个脚本文件。</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Workflow</div>
+      <h2>从刚性编排，到动态混合封装</h2>
+      <div class="cards three">
+        <div class="card">
+          <span class="big-number">旧</span>
+          <h3>外部流程引擎</h3>
+          <p>步骤固定，状态跳转明确，适合保证执行下限。</p>
+        </div>
+        <div class="card">
+          <span class="big-number">新</span>
+          <h3>Skill 封装</h3>
+          <p>把任务逻辑、约束、示例写进 Skill 文档，脚本负责精确执行。</p>
+        </div>
+        <div class="card">
+          <span class="big-number">合</span>
+          <h3>混合架构</h3>
+          <p>标准子任务用 Skill，关键主干流程仍保留 Workflow 或封装为 Tool。</p>
+        </div>
+      </div>
+      <div class="speaker-note">一句话：Skill 提供灵活性，Workflow 保住确定性。</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Environment</div>
+      <h2>从无状态调用，到有状态运行时</h2>
+      <div class="comparison">
+        <div class="card before">
+          <span class="label">早期</span>
+          <h3>像一次请求</h3>
+          <p>问一句、答一句，工具调用基本无状态，不需要专属工作空间。</p>
+        </div>
+        <div class="card after">
+          <span class="label">现在</span>
+          <h3>像一个数字员工</h3>
+          <p>要读写文件、生成中间产物、管理日志、维护 Skill 和 Memory。</p>
+        </div>
+      </div>
+      <div class="cards two">
+        <div class="card"><h3>本地电脑</h3><p>便利、灵活，但需要权限控制和用户确认，避免误删误改。</p></div>
+        <div class="card"><h3>沙箱 / 云服务器</h3><p>企业级主流选择，用隔离环境控制风险和资源边界。</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">一页总结</div>
+      <h2>六个概念的范式变化</h2>
+      <div class="matrix">
+        <div class="card"><h3>Prompt</h3><p>深耦合 → 渐进式加载</p></div>
+        <div class="card"><h3>Planning</h3><p>思维链 → 长程任务规划</p></div>
+        <div class="card"><h3>Memory</h3><p>RAG → 文件系统 + 检索混合</p></div>
+        <div class="card"><h3>Tools</h3><p>Function Call → CLI / Script</p></div>
+        <div class="card"><h3>Workflow</h3><p>刚性编排 → Skill + Workflow 混合</p></div>
+        <div class="card"><h3>Environment</h3><p>无状态 → Runtime / Workspace</p></div>
+      </div>
+      <div class="speaker-note">动图预留 6 秒：六张卡片从“旧范式”翻转到“新范式”。</div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">选型建议</div>
+      <h2>怎么选，不看概念新不新，看任务像什么</h2>
+      <div class="decision">
+        <div class="card">
+          <span class="tag">规则明确</span>
+          <h3>优先 Workflow</h3>
+          <p>例如审批流、表单处理、固定数据清洗。重点是稳定、可追踪、可解释。</p>
+        </div>
+        <div class="card">
+          <span class="tag purple">目标复杂</span>
+          <h3>引入自主 Agent</h3>
+          <p>例如代码修改、调研分析、跨系统排障。重点是规划、工具使用和自检。</p>
+        </div>
+        <div class="card">
+          <span class="tag green">长期复用</span>
+          <h3>建设 Memory / Skill</h3>
+          <p>例如团队知识、个人偏好、项目经验。重点是沉淀资产，减少重复沟通。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">核心观点</div>
+      <h2>Agent 的“形”没变，但“神”已经变了</h2>
+      <div class="quote panel">
+        今天的 Agent 依然有 Prompt、Planning、Memory、Tools，但每个模块的组织方式、数据流和工程边界都已经重构。
+        <small>变化的本质：用工程化确定性，承载模型的不确定性。</small>
+      </div>
+      <div class="cards two">
+        <div class="card"><h3>不迷信模型智商</h3><p>通过文件化、脚本化、沙箱化，让模型更稳定地发挥优势。</p></div>
+        <div class="card"><h3>不盲追最新架构</h3><p>根据复杂度、稳定性、成本选择合适范式，必要时组合使用。</p></div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="hero">
+        <div class="hero-copy">
+          <div class="kicker">结束页</div>
+          <h1>Agent 正在从工具<br />变成伙伴</h1>
+          <p class="subtitle">未来还会继续变化，但高质量 Agent 的底层方法不会变：让模型负责推理与创造，让工程负责边界与确定性。</p>
+          <div class="badge-row">
+            <span class="badge">理解演化</span>
+            <span class="badge">按场景选型</span>
+            <span class="badge">沉淀可复用资产</span>
+          </div>
+        </div>
+        <div class="gif-slot">
+          <div class="hint">动图预留 5 秒：Agent 把经验卡片放入知识库，下一次任务启动时自动取出</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="controls" aria-label="PPT controls">
+    <div class="buttons">
+      <button type="button" id="prev">上一页</button>
+      <button type="button" id="next">下一页</button>
+      <button type="button" id="fullscreen">全屏</button>
+    </div>
+    <div class="progress" aria-hidden="true"><div class="bar" id="bar"></div></div>
+    <div class="count" id="count"></div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const prevButton = document.getElementById("prev");
+    const nextButton = document.getElementById("next");
+    const fullscreenButton = document.getElementById("fullscreen");
+    const bar = document.getElementById("bar");
+    const count = document.getElementById("count");
+    let current = 0;
+
+    function showSlide(index) {
+      const next = Math.max(0, Math.min(index, slides.length - 1));
+      slides.forEach((slide, slideIndex) => {
+        const isActive = slideIndex === next;
+        slide.classList.toggle("active", isActive);
+        slide.classList.toggle("exit-left", slideIndex < next);
+        slide.setAttribute("aria-hidden", String(!isActive));
+      });
+      current = next;
+      bar.style.width = `${((current + 1) / slides.length) * 100}%`;
+      count.textContent = `${current + 1} / ${slides.length}`;
+    }
+
+    function go(delta) {
+      showSlide(current + delta);
+    }
+
+    prevButton.addEventListener("click", () => go(-1));
+    nextButton.addEventListener("click", () => go(1));
+    fullscreenButton.addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (["ArrowRight", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        go(1);
+      }
+      if (["ArrowLeft", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        go(-1);
+      }
+      if (event.key.toLowerCase() === "f") {
+        fullscreenButton.click();
+      }
+      if (event.key === "Home") {
+        showSlide(0);
+      }
+      if (event.key === "End") {
+        showSlide(slides.length - 1);
+      }
+    });
+
+    showSlide(0);
+  </script>
+</body>
+</html>
